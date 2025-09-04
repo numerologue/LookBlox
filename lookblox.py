@@ -72,10 +72,8 @@ async def check(interaction: discord.Interaction, username: str):
         alias = resolved.get("name") or username
         display_name = resolved.get("displayName", alias)
 
-        # Profile
         profile = await fetch_json(session, f"https://users.roblox.com/v1/users/{user_id}") or {}
 
-        # Avatar
         thumb = await fetch_json(session, f"https://thumbnails.roblox.com/v1/users/avatar?userIds={user_id}&size=420x420&format=Png&isCircular=false") or {}
         avatar_url = None
         try:
@@ -83,21 +81,16 @@ async def check(interaction: discord.Interaction, username: str):
         except Exception:
             avatar_url = None
 
-        # Social
         friends_ct = await fetch_json(session, f"https://friends.roblox.com/v1/users/{user_id}/friends/count") or {}
         followers_ct = await fetch_json(session, f"https://friends.roblox.com/v1/users/{user_id}/followers/count") or {}
         following_ct = await fetch_json(session, f"https://friends.roblox.com/v1/users/{user_id}/followings/count") or {}
 
-        # Groups
         groups_data = await fetch_json(session, f"https://groups.roblox.com/v2/users/{user_id}/groups/roles") or {}
 
-        # Games created
         games_data = await fetch_json(session, f"https://games.roblox.com/v2/users/{user_id}/games?sortOrder=Asc&limit=10") or {}
 
-        # Badges (functional)
         badges_data = await fetch_json(session, f"https://badges.roblox.com/v1/users/{user_id}/badges?limit=10&sortOrder=Asc") or {}
 
-        # Limited items & RAP
         rap_total = 0
         limited_lines: List[str] = []
         cursor = None
@@ -117,11 +110,8 @@ async def check(interaction: discord.Interaction, username: str):
             if not cursor:
                 break
 
-        # Previous usernames
         prev_names_data = await fetch_json(session, f"https://users.roblox.com/v1/users/{user_id}/username-history?limit=25&sortOrder=Desc") or {}
 
-        # ---------------- EMBEDS ----------------
-        # Overview / Profile
         e_profile = discord.Embed(
             title=f"{display_name} 👤 ",
             description=f"**Alias:** `{alias}`\n[Open Roblox Profile](https://www.roblox.com/users/{user_id}/profile)",
@@ -141,7 +131,6 @@ async def check(interaction: discord.Interaction, username: str):
             e_profile.set_thumbnail(url=avatar_url)
         embeds.append(add_footer(e_profile))
 
-        # Groups (name + hyperlink)
         e_groups = discord.Embed(title="Groups 🏛️", color=discord.Color.green())
         if groups_data.get("data"):
             lines = []
@@ -154,12 +143,10 @@ async def check(interaction: discord.Interaction, username: str):
             e_groups.description = "No groups found."
         embeds.append(add_footer(e_groups))
 
-        # Games
         e_games = discord.Embed(title="Created Games 🎮", color=discord.Color.orange())
         if games_data.get("data"):
             lines = []
             for game in games_data["data"]:
-                # Prefer rootPlaceId when present for URL, fallback to id
                 place_id = game.get("rootPlaceId") or game.get("id")
                 gname = game.get("name", "Unnamed")
                 visits = game.get("placeVisits", 0)
@@ -170,7 +157,6 @@ async def check(interaction: discord.Interaction, username: str):
             e_games.description = "No games found."
         embeds.append(add_footer(e_games))
 
-        # Badges (functional)
         e_badges = discord.Embed(title="Badges 🏅", color=discord.Color.gold())
         if badges_data.get("data"):
             for b in badges_data["data"][:10]:
@@ -179,14 +165,12 @@ async def check(interaction: discord.Interaction, username: str):
             e_badges.description = "No badges found."
         embeds.append(add_footer(e_badges))
 
-        # Limiteds & RAP
         e_rap = discord.Embed(title="Limited Items & RAP 💎", color=discord.Color.teal())
         if limited_lines:
             e_rap.add_field(name="Items (sample)", value="\n".join(limited_lines), inline=False)
         e_rap.add_field(name="Total RAP", value=str(rap_total), inline=False)
         embeds.append(add_footer(e_rap))
 
-        # Previous usernames
         e_prev = discord.Embed(title="Previous Usernames 📜", color=discord.Color.purple())
         if prev_names_data.get("data"):
             names = [row.get("name", "?") for row in prev_names_data["data"]]
@@ -195,10 +179,8 @@ async def check(interaction: discord.Interaction, username: str):
             e_prev.description = "No previous usernames."
         embeds.append(add_footer(e_prev))
 
-        # Send paginated embeds
         await interaction.followup.send(embed=embeds[0], view=EmbedPaginator(embeds))
 
-        # ---------------- LOGS (Embed) ----------------
         roblox_profile_link = f"https://www.roblox.com/users/{user_id}/profile"
         log_embed = discord.Embed(title="🔍 Roblox Lookup Log", color=discord.Color.dark_blue(), timestamp=datetime.utcnow())
         log_embed.add_field(name="Discord User", value=f"{interaction.user.mention}\n`{interaction.user}` (ID: {interaction.user.id})", inline=False)
@@ -227,4 +209,5 @@ async def on_ready():
         print(f"❌ Sync error: {e}")
 
 bot.run(TOKEN)
+
 
